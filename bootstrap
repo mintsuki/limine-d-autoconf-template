@@ -1,0 +1,19 @@
+#! /bin/sh
+
+set -ex
+
+srcdir="$(dirname "$0")"
+test -z "$srcdir" && srcdir=.
+
+cd "$srcdir"
+
+[ -f freestanding-toolchain ] || ( curl -Lo freestanding-toolchain https://github.com/mintsuki/freestanding-toolchain/raw/trunk/freestanding-toolchain && chmod +x freestanding-toolchain )
+[ -d freestanding-headers ] || git clone https://github.com/mintsuki/freestanding-headers.git --depth=1
+[ -d libgcc-binaries ] || git clone https://github.com/mintsuki/libgcc-binaries.git --depth=1
+[ -f limine.h ] || curl -Lo limine.h https://github.com/limine-bootloader/limine/raw/trunk/limine.h
+[ -f limine.d ] || curl -Lo limine.d https://github.com/limine-bootloader/limine-d/raw/trunk/limine.d
+
+mkdir -p build-aux
+cp "$(automake --print-libdir)/install-sh" build-aux
+
+autoreconf -fvi -Wall
