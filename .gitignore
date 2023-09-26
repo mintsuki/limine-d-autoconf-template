@@ -7,8 +7,8 @@
 *.tar.gz
 *.tar.xz
 /bin
-/limine.h
-/limine.d
+/src/limine.h
+/src/limine.d
 /freestanding-toolchain
 /toolchain-files
 /freestanding-headers
