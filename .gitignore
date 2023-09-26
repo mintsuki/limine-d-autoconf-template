@@ -6,6 +6,7 @@
 *.iso
 *.tar.gz
 *.tar.xz
+/obj
 /bin
 /src/limine.h
 /src/limine.d
