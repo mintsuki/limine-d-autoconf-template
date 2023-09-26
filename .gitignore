@@ -1,6 +1,5 @@
 *.o
-*.c.d
-*.S.d
+*.dep
 *.a
 *.elf
 *.hdd
