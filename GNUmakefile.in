@@ -155,7 +155,7 @@ override OBJ := $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(CFILES:.c=.c.o) 
 #    override NASMFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L . -type f -name '*.asm')
 #    override OBJ += $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(NASMFILES:.asm=.asm.o))
 #endif
-override HEADER_DEPS := $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(CFILES:.c=.c.dep) $(ASFILES:.S=.S.dep))
+override HEADER_DEPS := $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Default target.
 .PHONY: all
@@ -172,12 +172,12 @@ $(OUTPUT): GNUmakefile $(call MKESCAPE,$(SRCDIR))/linker-$(ARCH).ld $(OBJ) $(cal
 # Compilation rules for *.c files.
 $(call MKESCAPE,$(BUILDDIR))/obj/%.c.o: $(call MKESCAPE,$(SRCDIR))/src/%.c GNUmakefile
 	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-	$(CC) $(CFLAGS) $(CPPFLAGS) -MF '$(call SHESCAPE,$(@:.o=.dep))' -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
 
 # Compilation rules for *.S files.
 $(call MKESCAPE,$(BUILDDIR))/obj/%.S.o: $(call MKESCAPE,$(SRCDIR))/src/%.S GNUmakefile
 	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-	$(CC) $(CFLAGS) $(CPPFLAGS) -MF '$(call SHESCAPE,$(@:.o=.dep))' -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
 
 # Compilation rules for *.d files.
 $(call MKESCAPE,$(BUILDDIR))/obj/%.d.o: $(call MKESCAPE,$(SRCDIR))/src/%.d GNUmakefile
