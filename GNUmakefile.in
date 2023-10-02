@@ -12,60 +12,44 @@ define DEFAULT_VAR =
 endef
 
 # Import some autoconf variables as make variables.
+# Those beginning with DEFAULT_ are user overridable.
 override ARCH := @ARCH@
 override SRCDIR := @SRCDIR@
-override BUILDDIR := @BUILDDIR@
 override PACKAGE_VERSION := @PACKAGE_VERSION@
 override PACKAGE_TARNAME := @PACKAGE_TARNAME@
 override OUTPUT := bin/$(PACKAGE_TARNAME)
 override TOOLCHAIN_FILE := @TOOLCHAIN_FILE@
 override WERROR_FLAG := @WERROR_FLAG@
 override DEFAULT_CFLAGS := @CFLAGS@
+$(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 override DEFAULT_CPPFLAGS := @CPPFLAGS@
+$(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 override DEFAULT_DFLAGS := @DFLAGS@
-#override DEFAULT_NASMFLAGS := @NASMFLAGS@
+$(eval $(call DEFAULT_VAR,DFLAGS,$(DEFAULT_DFLAGS)))
+#ifeq ($(ARCH),x86_64)
+#    override DEFAULT_NASMFLAGS := @NASMFLAGS@
+#    $(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
+#endif
 override DEFAULT_LDFLAGS := @LDFLAGS@
+$(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 override DEFAULT_D := @D@
-
-# Autoconf dir variables.
-override prefix := @prefix@
-override datarootdir := @datarootdir@
-
-# Generator executables.
+$(eval $(call DEFAULT_VAR,D,$(DEFAULT_D)))
 override MKDIR_P := @MKDIR_P@
 override INSTALL := @INSTALL@
 override INSTALL_DATA := @INSTALL_DATA@
 override GREP := @GREP@
 override SED := @SED@
+override prefix := @prefix@
+override datarootdir := @datarootdir@
 
 # Macros to make our build system still work from within paths with spaces
 # or other special characters.
 override SPACE := $(subst ,, )
 MKESCAPE = $(subst $(SPACE),\ ,$(1))
 SHESCAPE = $(subst ','\'',$(1))
-OBJESCAPE = $(subst .a ,.a' ',$(subst .o ,.o' ',$(call SHESCAPE,$(1))))
 
 # Include toolchain file.
 include $(call MKESCAPE,$(TOOLCHAIN_FILE))
-
-# User controllable CFLAGS.
-$(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
-
-# User controllable CPPFLAGS.
-$(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
-
-# User controllable DFLAGS.
-$(eval $(call DEFAULT_VAR,DFLAGS,$(DEFAULT_DFLAGS)))
-
-#ifeq ($(ARCH),x86_64)
-#    # User controllable NASMFLAGS.
-#    $(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
-#endif
-
-# User controllable linker flags.
-$(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
-
-$(eval $(call DEFAULT_VAR,D,$(DEFAULT_D)))
 
 # Internal C flags that should not be changed by the user.
 override CFLAGS += \
@@ -147,15 +131,15 @@ override LDFLAGS += \
 
 # Use "find" to glob all *.c, *.S, *.d, and *.asm files in the tree and obtain the
 # object and header dependency file names.
-override CFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L . -type f -name '*.c')
-override ASFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L . -type f -name '*.S')
-override DFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L . -type f -name '*.d')
-override OBJ := $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(DFILES:.d=.d.o))
+override CFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L * -type f -name '*.c')
+override ASFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L * -type f -name '*.S')
+override DFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L * -type f -name '*.d')
+override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(DFILES:.d=.d.o))
 #ifeq ($(ARCH),x86_64)
-#    override NASMFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L . -type f -name '*.asm')
-#    override OBJ += $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(NASMFILES:.asm=.asm.o))
+#    override NASMFILES := $(shell cd '$(call SHESCAPE,$(SRCDIR))/src' && find -L * -type f -name '*.asm')
+#    override OBJ += $(addprefix obj/,$(NASMFILES:.asm=.asm.o))
 #endif
-override HEADER_DEPS := $(addprefix $(call MKESCAPE,$(BUILDDIR))/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
+override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Default target.
 .PHONY: all
@@ -163,32 +147,32 @@ all: $(OUTPUT)
 
 # Link rules for the final kernel executable.
 $(OUTPUT): GNUmakefile $(call MKESCAPE,$(SRCDIR))/linker-$(ARCH).ld $(OBJ) $(call MKESCAPE,$(SRCDIR))/libgcc-binaries/libgcc-$(LIBGCC).a
-	$(MKDIR_P) bin
-	$(LD) '$(call OBJESCAPE,$(OBJ))' '$(call SHESCAPE,$(SRCDIR))/libgcc-binaries/libgcc-$(LIBGCC).a' $(LDFLAGS) -o '$(call SHESCAPE,$@)'
+	$(MKDIR_P) "$$(dirname $@)"
+	$(LD) $(OBJ) '$(call SHESCAPE,$(SRCDIR))/libgcc-binaries/libgcc-$(LIBGCC).a' $(LDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-$(call MKESCAPE,$(BUILDDIR))/obj/%.c.o: $(call MKESCAPE,$(SRCDIR))/src/%.c GNUmakefile
-	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+obj/%.c.o: $(call MKESCAPE,$(SRCDIR))/src/%.c GNUmakefile
+	$(MKDIR_P) "$$(dirname $@)"
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o $@
 
 # Compilation rules for *.S files.
-$(call MKESCAPE,$(BUILDDIR))/obj/%.S.o: $(call MKESCAPE,$(SRCDIR))/src/%.S GNUmakefile
-	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+obj/%.S.o: $(call MKESCAPE,$(SRCDIR))/src/%.S GNUmakefile
+	$(MKDIR_P) "$$(dirname $@)"
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o $@
 
 # Compilation rules for *.d files.
-$(call MKESCAPE,$(BUILDDIR))/obj/%.d.o: $(call MKESCAPE,$(SRCDIR))/src/%.d GNUmakefile
-	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-	$(D) $(DFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+obj/%.d.o: $(call MKESCAPE,$(SRCDIR))/src/%.d GNUmakefile
+	$(MKDIR_P) "$$(dirname $@)"
+	$(D) $(DFLAGS) -c '$(call SHESCAPE,$<)' -o $@
 
 #ifeq ($(ARCH),x86_64)
 ## Compilation rules for *.asm files.
-#$(call MKESCAPE,$(BUILDDIR))/obj/%.asm.o: $(call MKESCAPE,$(SRCDIR))/src/%.asm GNUmakefile
-#	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
-#	nasm $(NASMFLAGS) '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
+#obj/%.asm.o: $(call MKESCAPE,$(SRCDIR))/src/%.asm GNUmakefile
+#	$(MKDIR_P) "$$(dirname $@)"
+#	nasm $(NASMFLAGS) '$(call SHESCAPE,$<)' -o $@
 #endif
 
 # Remove object files and the final executable.
