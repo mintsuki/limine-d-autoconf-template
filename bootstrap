@@ -13,7 +13,9 @@ cd "$srcdir"
 [ -f src/limine.h ] || curl -Lo src/limine.h https://github.com/limine-bootloader/limine/raw/trunk/limine.h
 [ -f src/limine.d ] || curl -Lo src/limine.d https://github.com/limine-bootloader/limine-d/raw/trunk/limine.d
 
+AUTOMAKE_LIBDIR="$(automake --print-libdir)"
+cp "${AUTOMAKE_LIBDIR}/INSTALL" ./
 mkdir -p build-aux
-cp "$(automake --print-libdir)/install-sh" build-aux
+cp "${AUTOMAKE_LIBDIR}/install-sh" build-aux/
 
 autoreconf -fvi -Wall
